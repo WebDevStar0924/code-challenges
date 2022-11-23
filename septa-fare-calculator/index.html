@@ -1,10 +1,241 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-	<meta charset="UTF-8">
+	<meta charset="utf-8">
 	<title>SEPTA Regional Rail Fare Calculator</title>
+	<style>
+		body {
+			font-family: 'Roboto', sans-serif;
+			color: #4d4d4d;
+		}
+
+		p {
+			margin: 0;
+		}
+
+		.wrapper {
+			border: 3px #cccccc solid;
+			margin-right: auto;
+			margin-left: auto;
+			max-width: 400px;
+		}
+
+		.logo-section {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			background-color: #595959;
+			color: white;
+			padding-top: 12px;
+			padding-bottom: 12px;
+		}
+
+		h1 {
+			margin-top: 0;
+			margin-bottom: 0;
+			margin-left: 20px;
+			font-weight: 500;
+		}
+
+		.widget-containner {
+			padding: 30px 20px;
+			border-bottom: 1px solid #e6e6e6;
+			text-align: center;
+		}
+
+		.help-text {
+			color: #989898;
+			font-size: 15px;
+			margin-top: 10px;
+		}
+
+		.title {
+			text-align: center;
+			font-weight: 500;
+			font-size: 22px;
+			margin-bottom: 15px;
+		}
+
+		select,
+		input[type='number'] {
+			width: 100%;
+			padding: 15px;
+			border-radius: 3px;
+			border: 1px #cccccc solid;
+			color: #4d4d4d;
+			font-size: 23px;
+			font-weight: 400;
+		}
+
+		input[type="radio"] {
+			-ms-transform: scale(1.5);
+			/* IE 9 */
+			-webkit-transform: scale(1.5);
+			/* Chrome, Safari, Opera */
+			transform: scale(1.5);
+		}
+
+		label {
+			color: #4d4d4d;
+			font-size: 23px;
+			font-weight: 400;
+		}
+
+		input[type='number'] {
+			width: 100px;
+			text-align: center;
+		}
+
+		.no-spin::-webkit-inner-spin-button,
+		.no-spin::-webkit-outer-spin-button {
+			-webkit-appearance: none !important;
+			margin: 0 !important;
+		}
+
+		.no-spin {
+			-moz-appearance: textfield !important;
+		}
+
+		.option-wrapper {
+			margin: auto;
+			max-width: 200px;
+			text-align: left;
+			font-size: 20px;
+			font-weight: 300;
+		}
+
+		.option-wrapper div:first-child {
+			margin-bottom: 5px;
+		}
+
+		.result-section {
+			background-color: #595959;
+			color: white;
+			padding: 20px 0;
+		}
+
+		.price {
+			font-weight: 700;
+			font-size: 60px;
+			text-align: center;
+		}
+	</style>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
-	
+
+	<div class="wrapper">
+		<div class="logo-section">
+			<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/SEPTA.svg/120px-SEPTA.svg.png?20101113155338"
+				width="40px" />
+			<h1>Regional Rail Fares</h1>
+		</div>
+		<div class="widget-containner">
+			<p class="title">Where are you gonig?</p>
+
+			<select name="zone" id="zone-select">
+			</select>
+		</div>
+		<div class="widget-containner">
+			<p class="title">When are you riding?</p>
+			<select name="time" id="time-select">
+				<option value="weekday">Weekdays</option>
+				<option value="evening_weekend">Evening Weekend</option>
+				<option value="anytime">Anytime</option>
+			</select>
+			<p class="help-text"></p>
+		</div>
+		<div class="widget-containner">
+			<p class="title">Where will you purchased the fare?</p>
+			<div class="option-wrapper">
+				<div>
+					<input type="radio" id="station" name="purchase" value="advance_purchase" checked>
+					<label for="station">Advanced</label>
+				</div>
+
+				<div>
+					<input type="radio" id="onboard" name="purchase" value="onboard_purchase">
+					<label for="onboard">Onboard</label>
+				</div>
+			</div>
+		</div>
+		<div class="widget-containner">
+			<p class="title">How many rides will you need?</p>
+			<input id="number" type="number" class="no-spin" value="1" />
+		</div>
+		<div class="result-section">
+			<p class="title">Your fare will cost</p>
+			<p class="price">$0.00</p>
+		</div>
+	</div>
+
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+	<script>
+		$(document).ready(function () {
+
+			var jsonData;
+
+			function calc() {
+				var zone = $('#zone-select').val();
+				var time = $('#time-select').val();
+				var purchase = $('input[name=purchase]:checked').val();
+				var number = $('#number').val();
+				var fares = jsonData.zones[zone - 1]['fares'];
+				var price = 0;
+				for (let i in fares) {
+					if (fares[i]['type'] == time && fares[i]['purchase'] == purchase) {
+						if (fares[i]['type'] == 'anytime')
+							price = number * fares[i]['price'] / 10;
+						else
+							price = number * fares[i]['price'];
+						break;
+					}
+				}
+				$(".price").text('$' + price.toFixed(2));
+			}
+
+			$.getJSON("fares.json", function (data) {
+				jsonData = data;
+				var zoneString = ''
+				for (let i in data.zones) {
+					zoneString += '<option value="' + data.zones[i].zone + '">' + data.zones[i].name + '</option>'
+				}
+				$(".help-text").text(jsonData['info']['weekday']);
+				$("#zone-select").append(zoneString);
+				calc();
+			}).fail(function () {
+				console.log("An error has occurred.");
+			});
+
+			$('#zone-select').on('change', function () {
+				calc();
+			});
+
+			$('#time-select').on('change', function () {
+				$(".help-text").text(jsonData['info'][this.value]);
+				if (this.value == "anytime") {
+					$('.option-wrapper div:last-child').css("display", "none");
+					$('#station').attr('checked', true);
+				} else {
+					$('.option-wrapper div:last-child').css("display", "block");
+				}
+				calc();
+			});
+
+			$('input[type=radio][name=purchase]').change(function () {
+				calc();
+			});
+
+			$('input[type=number]').change(function () {
+				calc();
+			});
+
+		});
+	</script>
 </body>
+
 </html>
